@@ -111,7 +111,7 @@ async function findCommonHolders(heliusApiKey: string, tokenAddresses: string[])
 
 // Example usage
 async function main() {
-    const HELIUS_API_KEY = '76538c8b-33c7-47d5-a23e-1a98fa1cb906';
+    const HELIUS_API_KEY = 'YOUR_API_KEY';
     
     try {
         // Define the token addresses you want to check
