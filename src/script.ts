@@ -120,15 +120,35 @@ async function saveOutputToFiles(
 ) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     
-    // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
     
-    // Prepare formatted text output
+    // Add helper function for formatting dollar values
+    const formatDollarValue = (value: number): string => {
+        if (value >= 1000000) {
+            // For values >= 1M, show one decimal place
+            return `$${(value / 1000000).toLocaleString('en-US', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+            })}M`;
+        } else if (value >= 1000) {
+            // For values >= 1K, show one decimal place
+            return `$${(value / 1000).toLocaleString('en-US', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+            })}K`;
+        } else {
+            // For smaller values, show two decimal places
+            return `$${value.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
+    };
+    
     let textOutput = `Token Holdings Report - ${new Date().toLocaleString()}\n`;
     textOutput += `Found ${qualifiedHolders.length} addresses that hold at least ${minTokensRequired} tokens\n`;
     textOutput += 'Sorted by total portfolio value (highest to lowest):\n\n';
     
-    // Prepare structured JSON output
     const jsonOutput: OutputData = {
         timestamp: new Date().toISOString(),
         summary: {
@@ -139,14 +159,10 @@ async function saveOutputToFiles(
     };
     
     qualifiedHolders.forEach((holder, index) => {
-        // Text format
         textOutput += `Rank #${index + 1}\n`;
         textOutput += `Holder: ${holder.address}\n`;
         textOutput += `Number of tokens held: ${holder.tokenCount}\n`;
-        textOutput += `Total portfolio value: $${holder.totalValueUsd.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })}\n\n`;
+        textOutput += `Total portfolio value: ${formatDollarValue(holder.totalValueUsd)}\n\n`;
         
         const holderHoldings: Array<{
             tokenAddress: string;
@@ -157,24 +173,18 @@ async function saveOutputToFiles(
         tokens.forEach(token => {
             const holding = holder.holdings.get(token.address);
             
-            // Add to JSON structure
             holderHoldings.push({
                 tokenAddress: token.address,
                 amount: holding?.amount || 0,
                 valueUsd: holding?.valueUsd || 0
             });
             
-            // Add to text output
             textOutput += holding
                 ? `Token ${token.address}: ${holding.amount.toLocaleString()} tokens` +
-                  ` (Value: $${holding.valueUsd?.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                  }) || '0.00'})\n`
+                  ` (Value: ${formatDollarValue(holding.valueUsd || 0)})\n`
                 : `Token ${token.address}: 0 tokens (Value: $0.00)\n`;
         });
         
-        // Add holder to JSON structure
         jsonOutput.holders.push({
             rank: index + 1,
             address: holder.address,
@@ -186,7 +196,6 @@ async function saveOutputToFiles(
         textOutput += '-'.repeat(80) + '\n\n';
     });
     
-    // Save files
     const textFilePath = path.join(outputDir, `holdings-report-${timestamp}.txt`);
     const jsonFilePath = path.join(outputDir, `holdings-report-${timestamp}.json`);
     
@@ -325,21 +334,21 @@ async function findHoldersWithMinTokens(
 }
 
 async function main() {
-    const HELIUS_API_KEY = 'YOUR_API_KEY';
+    const HELIUS_API_KEY = 'YOUR_HELIUS_API_KEY';
     
     try {
         const tokens: TokenInfo[] = [
             {
                 address: '3B5wuUrMEi5yATD7on46hKfej3pfmd7t1RKgrsN3pump',
-                priceUsd: 0.15
+                priceUsd: 0.0021
             },
             {
                 address: 'GYKmdfcUmZVrqfcH1g579BGjuzSRijj3LBuwv79rpump',
-                priceUsd: 0.25
+                priceUsd: 0.0025
             },
             {
                 address: 'GRFK7sv4KhkMzJ7BXDUBy4PLyZVBeXuW1FeaT6Mnpump',
-                priceUsd: 0.10
+                priceUsd: 0.0010
             }
         ];
         
